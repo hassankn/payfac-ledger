@@ -1,0 +1,92 @@
+package ledger
+
+import "time"
+
+// Account represents a named account in the double-entry ledger.
+type Account string
+
+const (
+	AccountCardProcessor Account = "card_processor" // External: funds at processor
+	AccountPending       Account = "pending"        // Authorized, not yet settled
+	AccountSettling      Account = "settling"       // On settlement file, not yet reconciled
+	AccountAvailable     Account = "available"      // Reconciled with bank deposit
+	AccountFunded        Account = "funded"         // Paid out to merchant
+)
+
+// TransactionStatus tracks where a transaction is in its lifecycle.
+type TransactionStatus string
+
+const (
+	StatusPending   TransactionStatus = "pending"
+	StatusSettling  TransactionStatus = "settling"
+	StatusAvailable TransactionStatus = "available"
+	StatusFunded    TransactionStatus = "funded"
+)
+
+// Transaction represents a card payment submitted by a merchant.
+type Transaction struct {
+	TransactionID  string
+	MerchantID     string
+	CardNumber     string // last 4 + token
+	Amount         int64  // in cents
+	ProcessorRefID string
+	Status         TransactionStatus
+	CreatedAt      time.Time
+	SettlementDate string // YYYY-MM-DD, set when settled
+}
+
+// EntryType distinguishes debit from credit entries.
+type EntryType string
+
+const (
+	Debit  EntryType = "debit"
+	Credit EntryType = "credit"
+)
+
+// LedgerEntry is one row in the double-entry ledger.
+// Every fund movement creates exactly two entries (one debit, one credit)
+// linked by the same JournalID.
+type LedgerEntry struct {
+	ID            int
+	JournalID     int // links the debit and credit halves
+	TransactionID string
+	MerchantID    string
+	Account       Account
+	EntryType     EntryType
+	Amount        int64 // always positive
+	CreatedAt     time.Time
+	Reference     string // human-readable description
+}
+
+// SettlementRow is a single row from the processor's daily settlement file.
+type SettlementRow struct {
+	ProcessorRefID string
+	MerchantID     string
+	Amount         int64
+	SettlementDate string // YYYY-MM-DD
+}
+
+// SettlementResult summarizes what happened when processing a settlement file.
+type SettlementResult struct {
+	Matched        int
+	Unmatched      int
+	AlreadySettled int
+	UnmatchedRows  []SettlementRow
+}
+
+// MerchantBalance shows how much money is in each state for a merchant.
+type MerchantBalance struct {
+	MerchantID string
+	Pending    int64
+	Settling   int64
+	Available  int64
+	Funded     int64
+}
+
+// PayoutResult reports the outcome of a single merchant payout.
+type PayoutResult struct {
+	MerchantID string
+	Amount     int64
+	Success    bool
+	Error      error
+}

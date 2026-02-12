@@ -69,17 +69,17 @@ func (l *Ledger) RecordAuthorization(txn Transaction) error {
 
 // ProcessSettlementFile processes a daily settlement file from the card processor.
 // It moves matched transactions from Pending to Settling and flags unknown rows.
-func (l *Ledger) ProcessSettlementFile(fileID string, rows []SettlementRow) (*SettlementResult, error) {
+func (l *Ledger) ProcessSettlementFile(fileID string, rows []SettlementRow) (*SettlementFileResult, error) {
 	if fileID == "" {
 		return nil, errors.New("file_id is required")
 	}
 
 	// Idempotency: skip if already processed.
 	if l.processedFiles[fileID] {
-		return &SettlementResult{}, nil
+		return &SettlementFileResult{}, nil
 	}
 
-	result := &SettlementResult{}
+	result := &SettlementFileResult{}
 	var totalAmount int64
 	var settlementDate string
 

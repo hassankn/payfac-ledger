@@ -16,7 +16,7 @@ A simplified payment facilitation ledger system that tracks funds through their 
 
 Every movement of funds creates **two separate ledger entries** — a debit (money leaving an account) and a credit (money entering an account) — linked by a shared `JournalID`. This allows independent verification: the sum of all debits must always equal the sum of all credits.
 
-A single-row approach (one row with both debit and credit accounts) would be simpler, but locks you into 1:1 movements. Two separate rows allow a single journal entry to split funds across multiple accounts (e.g., partial settlements, fee deductions), which is important for extensibility.
+A single-row approach (one row with both debit and credit accounts) would be simpler, but locks us into 1:1 movements. Two separate rows allow a single journal entry to split funds across multiple accounts (e.g., partial settlements, fee deductions), which is important for extensibility.
 
 All monetary amounts are stored as integer cents (`int64`) to avoid floating-point rounding errors.
 

@@ -73,7 +73,7 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 		return nil, errors.New("file_id is required")
 	}
 
-	// Idempotency: skip if already processed.
+	// Idempotency: skip if file already processed.
 	if l.processedFiles[file.FileID] {
 		return &SettlementFileResult{}, nil
 	}
@@ -85,8 +85,8 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 		totalAmount += row.Amount
 
 		txnID, found := l.refIndex[row.ProcessorRefID]
+		// If no transaction found, add to unmatched
 		if !found {
-			result.Unmatched++
 			result.UnmatchedRows = append(result.UnmatchedRows, row)
 			continue
 		}

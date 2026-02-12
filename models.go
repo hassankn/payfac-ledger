@@ -76,7 +76,6 @@ type SettlementFile struct {
 // SettlementFileResult summarizes what happened when processing a settlement file.
 type SettlementFileResult struct {
 	Matched        int
-	Unmatched      int
 	AlreadySettled int
 	UnmatchedRows  []SettlementRow
 }

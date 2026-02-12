@@ -52,8 +52,8 @@ func TestHappyPath(t *testing.T) {
 	if result.Matched != 3 {
 		t.Errorf("matched: got %d, want 3", result.Matched)
 	}
-	if result.Unmatched != 0 {
-		t.Errorf("unmatched: got %d, want 0", result.Unmatched)
+	if len(result.UnmatchedRows) != 0 {
+		t.Errorf("unmatched: got %d, want 0", len(result.UnmatchedRows))
 	}
 
 	// Check settling balances (pending should be zero now).
@@ -125,8 +125,8 @@ func TestUnknownSettlementRow(t *testing.T) {
 	if result.Matched != 1 {
 		t.Errorf("matched: got %d, want 1", result.Matched)
 	}
-	if result.Unmatched != 1 {
-		t.Errorf("unmatched: got %d, want 1", result.Unmatched)
+	if len(result.UnmatchedRows) != 1 {
+		t.Errorf("unmatched: got %d, want 1", len(result.UnmatchedRows))
 	}
 	if len(result.UnmatchedRows) != 1 || result.UnmatchedRows[0].ProcessorRefID != "ref-unknown" {
 		t.Errorf("unmatched rows: got %+v", result.UnmatchedRows)

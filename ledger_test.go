@@ -66,7 +66,7 @@ func TestHappyPath(t *testing.T) {
 	}
 
 	// 3. Reconcile bank deposit.
-	err = l.ReconcileBankDeposit(6000, "2026-02-10") // 1000+2000+3000
+	err = l.ReconcileBankDeposit(BankDeposit{Amount: 6000, SettlementDate: "2026-02-10"}) // 1000+2000+3000
 	if err != nil {
 		t.Fatalf("ReconcileBankDeposit: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestDepositMismatch(t *testing.T) {
 	})
 
 	// Wrong amount.
-	err := l.ReconcileBankDeposit(999, "2026-02-10")
+	err := l.ReconcileBankDeposit(BankDeposit{Amount: 999, SettlementDate: "2026-02-10"})
 	if err == nil {
 		t.Fatal("expected error for mismatched deposit, got nil")
 	}
@@ -227,7 +227,7 @@ func TestFailedPayoutRetry(t *testing.T) {
 		Date:   "2026-02-10",
 		Rows:   []SettlementRow{{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000}},
 	})
-	_ = l.ReconcileBankDeposit(1000, "2026-02-10")
+	_ = l.ReconcileBankDeposit(BankDeposit{Amount: 1000, SettlementDate: "2026-02-10"})
 
 	// First batch — should fail.
 	results := l.ExecutePayoutBatch()

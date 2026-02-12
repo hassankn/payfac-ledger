@@ -25,11 +25,11 @@ const (
 
 // Transaction represents a card payment submitted by a merchant.
 type Transaction struct {
-	TransactionID  string
-	MerchantID     string
+	TransactionID  string // internal unique ID for this transaction
+	MerchantID     string // merchant who submitted the transaction
 	CardNumber     string // last 4 + token
 	Amount         int64  // in cents
-	ProcessorRefID string
+	ProcessorRefID string // ID assigned by card processor, used to match settlement rows
 	Status         TransactionStatus
 	CreatedAt      time.Time
 	SettlementDate string // YYYY-MM-DD, set when settled
@@ -71,6 +71,12 @@ type SettlementFile struct {
 	FileID string
 	Date   string // YYYY-MM-DD
 	Rows   []SettlementRow
+}
+
+// BankDeposit represents a deposit received into the PayFac's bank account.
+type BankDeposit struct {
+	Amount         int64
+	SettlementDate string // YYYY-MM-DD
 }
 
 // SettlementFileResult summarizes what happened when processing a settlement file.

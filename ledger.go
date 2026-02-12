@@ -15,10 +15,9 @@ type Ledger struct {
 	transactions     map[string]*Transaction // keyed by transaction_id
 	refIndex         map[string]string       // processor_ref_id -> transaction_id
 	entries          []LedgerEntry
-	nextEntryID      int
-	processedFiles   map[string]bool   // settlement file IDs already processed
-	settlementTotals map[string]int64  // settlement_date -> expected total
-	settlementDates  map[string]string // settlement_date -> file tracking
+	nextEntryID      int              // auto-incrementing counter for journal IDs
+	processedFiles   map[string]bool  // settlement file IDs already processed
+	settlementTotals map[string]int64 // settlement_date -> expected total
 	payoutFunc       PayoutFunc
 }
 
@@ -30,7 +29,6 @@ func NewLedger(payoutFunc PayoutFunc) *Ledger {
 		entries:          make([]LedgerEntry, 0),
 		processedFiles:   make(map[string]bool),
 		settlementTotals: make(map[string]int64),
-		settlementDates:  make(map[string]string),
 		payoutFunc:       payoutFunc,
 	}
 }
@@ -85,7 +83,7 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 		totalAmount += row.Amount
 
 		txnID, found := l.refIndex[row.ProcessorRefID]
-		// If no transaction found, add to unmatched
+		// No transaction found; add to unmatched rows and skip.
 		if !found {
 			result.UnmatchedRows = append(result.UnmatchedRows, row)
 			continue
@@ -93,7 +91,7 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 
 		txn := l.transactions[txnID]
 
-		// Skip if already settled (shouldn't create duplicate entries).
+		// Skip if not in pending state (already moved past this stage).
 		if txn.Status != StatusPending {
 			result.AlreadySettled++
 			continue
@@ -113,19 +111,19 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 
 // ReconcileBankDeposit confirms a bank deposit matches the expected settlement total
 // and moves all settling transactions for that date to Available.
-func (l *Ledger) ReconcileBankDeposit(amount int64, settlementDate string) error {
-	expected, exists := l.settlementTotals[settlementDate]
+func (l *Ledger) ReconcileBankDeposit(deposit BankDeposit) error {
+	expected, exists := l.settlementTotals[deposit.SettlementDate]
 	if !exists {
-		return fmt.Errorf("no settlement found for date %s", settlementDate)
+		return fmt.Errorf("no settlement found for date %s", deposit.SettlementDate)
 	}
 
-	if amount != expected {
-		return fmt.Errorf("deposit mismatch for %s: expected %d, got %d", settlementDate, expected, amount)
+	if deposit.Amount != expected {
+		return fmt.Errorf("deposit mismatch for %s: expected %d, got %d", deposit.SettlementDate, expected, deposit.Amount)
 	}
 
 	// Move all settling transactions for this date to available.
 	for _, txn := range l.transactions {
-		if txn.Status == StatusSettling && txn.SettlementDate == settlementDate {
+		if txn.Status == StatusSettling && txn.SettlementDate == deposit.SettlementDate {
 			txn.Status = StatusAvailable
 			l.addEntry(txn.TransactionID, txn.MerchantID, AccountSettling, AccountAvailable, txn.Amount, "bank_reconciliation")
 		}

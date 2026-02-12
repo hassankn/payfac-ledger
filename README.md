@@ -29,10 +29,11 @@ All monetary amounts are stored as integer cents (`int64`) to avoid floating-poi
 | `settling` | On settlement file, awaiting bank deposit |
 | `available` | Reconciled with bank deposit, ready for payout |
 | `funded` | Paid out to the merchant |
+| `merchant_bank` | External — funds in merchants' bank accounts |
 
 ### State Transitions
 
-A healthy transaction flows through: **Pending → Settling → Available → Funded**
+A healthy transaction flows through: **Pending → Settling → Available → Funded → MerchantBank**
 
 Each transition moves money between accounts:
 
@@ -40,10 +41,10 @@ Each transition moves money between accounts:
 Authorization:    CardProcessor → Pending
 Settlement:       Pending       → Settling
 Reconciliation:   Settling      → Available
-Payout:           Available     → Funded
+Payout:           Available     → Funded → MerchantBank
 ```
 
-A fully lifecycle'd transaction ends with zero balance in all intermediate states.
+After a complete lifecycle, all internal account balances are zero. Non-zero balances indicate money stuck at that stage.
 
 ### Balance Queries
 

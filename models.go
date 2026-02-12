@@ -14,6 +14,7 @@ const (
 	AccountSettling      Account = "settling"       // On settlement file, not yet reconciled
 	AccountAvailable     Account = "available"      // Reconciled with bank deposit
 	AccountFunded        Account = "funded"         // Paid out to merchant
+	AccountMerchantBank  Account = "merchant_bank"  // External: funds in merchants' bank accounts
 )
 
 // TransactionStatus tracks where a transaction is in its lifecycle.

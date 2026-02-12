@@ -161,11 +161,12 @@ func (l *Ledger) ExecutePayoutBatch() []PayoutResult {
 		results = append(results, result)
 
 		if err == nil {
-			// Move all available transactions for this merchant to posted.
+			// Move all available transactions for this merchant to funded.
 			for _, txn := range l.transactions {
 				if txn.MerchantID == merchantID && txn.Status == StatusAvailable {
 					txn.Status = StatusFunded
 					l.addEntry(txn.TransactionID, txn.MerchantID, AccountAvailable, AccountFunded, txn.Amount, "payout")
+					l.addEntry(txn.TransactionID, txn.MerchantID, AccountFunded, AccountMerchantBank, txn.Amount, "payout_disbursement")
 				}
 			}
 		}
@@ -184,6 +185,23 @@ func (l *Ledger) GetMerchantBalance(merchantID string) MerchantBalance {
 			continue
 		}
 
+		switch e.EntryType {
+		case Credit:
+			addToAccount(&bal, e.Account, e.Amount)
+		case Debit:
+			addToAccount(&bal, e.Account, -e.Amount)
+		}
+	}
+
+	return bal
+}
+
+// GetSystemBalance returns the aggregate balance across all merchants.
+// In a healthy system, pending/settling/available should trend toward zero.
+func (l *Ledger) GetSystemBalance() MerchantBalance {
+	bal := MerchantBalance{}
+
+	for _, e := range l.entries {
 		switch e.EntryType {
 		case Credit:
 			addToAccount(&bal, e.Account, e.Amount)

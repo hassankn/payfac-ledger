@@ -6,7 +6,7 @@ import (
 )
 
 // TestHappyPath runs through the full lifecycle:
-// authorize → settle → reconcile → payout → all balances zero.
+// authorize -> settle -> reconcile -> payout -> all balances zero.
 func TestHappyPath(t *testing.T) {
 	payoutFunc := func(merchantID string, amount int64, reference string) error {
 		return nil // always succeeds
@@ -98,6 +98,12 @@ func TestHappyPath(t *testing.T) {
 	balB = l.GetMerchantBalance("merchant-B")
 	if balB.Pending != 0 || balB.Settling != 0 || balB.Available != 0 {
 		t.Errorf("merchant-B should have zero in-flight: %+v", balB)
+	}
+
+	// 5. System-wide balance: all zero (money has exited to merchant banks).
+	sys := l.GetSystemBalance()
+	if sys.Pending != 0 || sys.Settling != 0 || sys.Available != 0 || sys.Funded != 0 {
+		t.Errorf("system should have zero in all states: %+v", sys)
 	}
 }
 

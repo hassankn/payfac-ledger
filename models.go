@@ -5,6 +5,9 @@ import "time"
 // Account represents a named account in the double-entry ledger.
 type Account string
 
+// Date represents a calendar date in YYYY-MM-DD format.
+type Date string
+
 const (
 	AccountCardProcessor Account = "card_processor" // External: funds at processor
 	AccountPending       Account = "pending"        // Authorized, not yet settled
@@ -32,7 +35,7 @@ type Transaction struct {
 	ProcessorRefID string // ID assigned by card processor, used to match settlement rows
 	Status         TransactionStatus
 	CreatedAt      time.Time
-	SettlementDate string // YYYY-MM-DD, set when settled
+	SettlementDate Date // set when settled
 }
 
 // EntryType distinguishes debit from credit entries.
@@ -63,20 +66,20 @@ type SettlementRow struct {
 	ProcessorRefID string
 	MerchantID     string
 	Amount         int64
-	SettlementDate string // YYYY-MM-DD
+	SettlementDate Date
 }
 
 // SettlementFile represents a daily settlement file from the card processor.
 type SettlementFile struct {
 	FileID string
-	Date   string // YYYY-MM-DD
+	Date   Date
 	Rows   []SettlementRow
 }
 
 // BankDeposit represents a deposit received into the PayFac's bank account.
 type BankDeposit struct {
 	Amount         int64
-	SettlementDate string // YYYY-MM-DD
+	SettlementDate Date
 }
 
 // SettlementFileResult summarizes what happened when processing a settlement file.

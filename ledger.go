@@ -15,9 +15,9 @@ type Ledger struct {
 	transactions     map[string]*Transaction // keyed by transaction_id
 	refIndex         map[string]string       // processor_ref_id -> transaction_id
 	entries          []LedgerEntry
-	nextEntryID      int              // auto-incrementing counter for journal IDs
-	processedFiles   map[string]bool  // settlement file IDs already processed
-	settlementTotals map[string]int64 // settlement_date -> expected total
+	nextEntryID      int             // auto-incrementing counter for journal IDs
+	processedFiles   map[string]bool // settlement file IDs already processed
+	settlementTotals map[Date]int64  // settlement_date -> expected total
 	payoutFunc       PayoutFunc
 }
 
@@ -28,7 +28,7 @@ func NewLedger(payoutFunc PayoutFunc) *Ledger {
 		refIndex:         make(map[string]string),
 		entries:          make([]LedgerEntry, 0),
 		processedFiles:   make(map[string]bool),
-		settlementTotals: make(map[string]int64),
+		settlementTotals: make(map[Date]int64),
 		payoutFunc:       payoutFunc,
 	}
 }

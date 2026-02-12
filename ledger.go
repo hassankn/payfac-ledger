@@ -42,6 +42,9 @@ func (l *Ledger) RecordAuthorization(txn Transaction) error {
 	if txn.MerchantID == "" {
 		return errors.New("merchant_id is required")
 	}
+	if txn.CardNumber == "" {
+		return errors.New("card_number is required")
+	}
 	if txn.Amount <= 0 {
 		return errors.New("amount must be positive")
 	}
@@ -80,8 +83,6 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 	var totalAmount int64
 
 	for _, row := range file.Rows {
-		totalAmount += row.Amount
-
 		txnID, found := l.refIndex[row.ProcessorRefID]
 		// No transaction found; add to unmatched rows and skip.
 		if !found {
@@ -100,6 +101,7 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 		txn.Status = StatusSettling
 		txn.SettlementDate = file.Date
 		l.addEntry(txn.TransactionID, txn.MerchantID, AccountPending, AccountSettling, row.Amount, "settlement")
+		totalAmount += row.Amount
 		result.Matched++
 	}
 

@@ -67,7 +67,6 @@ type SettlementRow struct {
 	ProcessorRefID string
 	MerchantID     string
 	Amount         int64
-	SettlementDate Date
 }
 
 // SettlementFile represents a daily settlement file from the card processor.

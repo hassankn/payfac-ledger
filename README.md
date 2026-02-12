@@ -48,7 +48,7 @@ After a complete lifecycle, all internal account balances are zero. Non-zero bal
 
 ### Balance Queries
 
-`GetSystemBalance()` aggregates all ledger entries to show how much money sits in each account (pending, settling, available, funded). After a healthy lifecycle, all balances net to zero. A non-zero balance signals where money is stuck in the pipeline.
+`GetSystemBalance()` aggregates all ledger entries to show how much money sits in each account state (pending, settling, available, funded). After a healthy lifecycle, all balances net to zero. A non-zero balance in a state indicates money is in motion.
 
 `GetMerchantBalance(merchantID)` returns the same breakdown for a single merchant, used to determine payout amounts and diagnose per-merchant issues.
 
@@ -77,5 +77,5 @@ After a complete lifecycle, all internal account balances are zero. Non-zero bal
 ## Running Tests
 
 ```bash
-go test -v ./...
+go test -v -cover ./...
 ```

@@ -16,9 +16,9 @@ func TestHappyPath(t *testing.T) {
 
 	// 1. Authorize transactions.
 	txns := []Transaction{
-		{TransactionID: "txn-1", MerchantID: "merchant-A", Amount: 1000, ProcessorRefID: "ref-1"},
-		{TransactionID: "txn-2", MerchantID: "merchant-A", Amount: 2000, ProcessorRefID: "ref-2"},
-		{TransactionID: "txn-3", MerchantID: "merchant-B", Amount: 3000, ProcessorRefID: "ref-3"},
+		{TransactionID: "txn-1", MerchantID: "merchant-A", CardNumber: "4242", Amount: 1000, ProcessorRefID: "ref-1"},
+		{TransactionID: "txn-2", MerchantID: "merchant-A", CardNumber: "4242", Amount: 2000, ProcessorRefID: "ref-2"},
+		{TransactionID: "txn-3", MerchantID: "merchant-B", CardNumber: "5555", Amount: 3000, ProcessorRefID: "ref-3"},
 	}
 	for _, txn := range txns {
 		if err := l.RecordAuthorization(txn); err != nil {
@@ -100,7 +100,7 @@ func TestHappyPath(t *testing.T) {
 		t.Errorf("merchant-B should have zero in-flight: %+v", balB)
 	}
 
-	// 5. System-wide balance: all zero (money has exited to merchant banks).
+	// 6. System-wide balance: all zero (money has exited to merchant banks).
 	sys := l.GetSystemBalance()
 	if sys.Pending != 0 || sys.Settling != 0 || sys.Available != 0 || sys.Funded != 0 {
 		t.Errorf("system should have zero in all states: %+v", sys)
@@ -113,7 +113,7 @@ func TestUnknownSettlementRow(t *testing.T) {
 	l := NewLedger(nil)
 
 	_ = l.RecordAuthorization(Transaction{
-		TransactionID: "txn-1", MerchantID: "m1", Amount: 500, ProcessorRefID: "ref-1",
+		TransactionID: "txn-1", MerchantID: "m1", CardNumber: "4242", Amount: 500, ProcessorRefID: "ref-1",
 	})
 
 	result, err := l.ProcessSettlementFile(SettlementFile{
@@ -151,7 +151,7 @@ func TestDepositMismatch(t *testing.T) {
 	l := NewLedger(nil)
 
 	_ = l.RecordAuthorization(Transaction{
-		TransactionID: "txn-1", MerchantID: "m1", Amount: 1000, ProcessorRefID: "ref-1",
+		TransactionID: "txn-1", MerchantID: "m1", CardNumber: "4242", Amount: 1000, ProcessorRefID: "ref-1",
 	})
 
 	_, _ = l.ProcessSettlementFile(SettlementFile{
@@ -182,7 +182,7 @@ func TestIdempotentSettlement(t *testing.T) {
 	l := NewLedger(nil)
 
 	_ = l.RecordAuthorization(Transaction{
-		TransactionID: "txn-1", MerchantID: "m1", Amount: 500, ProcessorRefID: "ref-1",
+		TransactionID: "txn-1", MerchantID: "m1", CardNumber: "4242", Amount: 500, ProcessorRefID: "ref-1",
 	})
 
 	file := SettlementFile{
@@ -213,10 +213,10 @@ func TestIdempotentSettlement(t *testing.T) {
 // TestFailedPayoutRetry verifies that a failed payout leaves money in Available
 // and a subsequent batch can successfully retry it.
 func TestFailedPayoutRetry(t *testing.T) {
-	callCount := 0
+	failFirst := true
 	payoutFunc := func(merchantID string, amount int64, reference string) error {
-		callCount++
-		if callCount == 1 && merchantID == "m1" {
+		if failFirst {
+			failFirst = false
 			return errors.New("bank unavailable")
 		}
 		return nil
@@ -226,7 +226,7 @@ func TestFailedPayoutRetry(t *testing.T) {
 
 	// Setup: authorize, settle, reconcile.
 	_ = l.RecordAuthorization(Transaction{
-		TransactionID: "txn-1", MerchantID: "m1", Amount: 1000, ProcessorRefID: "ref-1",
+		TransactionID: "txn-1", MerchantID: "m1", CardNumber: "4242", Amount: 1000, ProcessorRefID: "ref-1",
 	})
 	_, _ = l.ProcessSettlementFile(SettlementFile{
 		FileID: "file-1",

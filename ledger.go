@@ -7,7 +7,6 @@ import (
 )
 
 // PayoutFunc is called to issue a payout to a merchant's bank account.
-// Matches the spec: POST /payouts { merchant_id, amount, reference }.
 // Returns an error if the payout fails.
 type PayoutFunc func(merchantID string, amount int64, reference string) error
 
@@ -69,25 +68,21 @@ func (l *Ledger) RecordAuthorization(txn Transaction) error {
 
 // ProcessSettlementFile processes a daily settlement file from the card processor.
 // It moves matched transactions from Pending to Settling and flags unknown rows.
-func (l *Ledger) ProcessSettlementFile(fileID string, rows []SettlementRow) (*SettlementFileResult, error) {
-	if fileID == "" {
+func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResult, error) {
+	if file.FileID == "" {
 		return nil, errors.New("file_id is required")
 	}
 
 	// Idempotency: skip if already processed.
-	if l.processedFiles[fileID] {
+	if l.processedFiles[file.FileID] {
 		return &SettlementFileResult{}, nil
 	}
 
 	result := &SettlementFileResult{}
 	var totalAmount int64
-	var settlementDate string
 
-	for _, row := range rows {
+	for _, row := range file.Rows {
 		totalAmount += row.Amount
-		if settlementDate == "" {
-			settlementDate = row.SettlementDate
-		}
 
 		txnID, found := l.refIndex[row.ProcessorRefID]
 		if !found {
@@ -105,15 +100,13 @@ func (l *Ledger) ProcessSettlementFile(fileID string, rows []SettlementRow) (*Se
 		}
 
 		txn.Status = StatusSettling
-		txn.SettlementDate = row.SettlementDate
+		txn.SettlementDate = file.Date
 		l.addEntry(txn.TransactionID, txn.MerchantID, AccountPending, AccountSettling, row.Amount, "settlement")
 		result.Matched++
 	}
 
-	l.processedFiles[fileID] = true
-	if settlementDate != "" {
-		l.settlementTotals[settlementDate] = totalAmount
-	}
+	l.processedFiles[file.FileID] = true
+	l.settlementTotals[file.Date] = totalAmount
 
 	return result, nil
 }

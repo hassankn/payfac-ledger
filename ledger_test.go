@@ -37,12 +37,15 @@ func TestHappyPath(t *testing.T) {
 	}
 
 	// 2. Process settlement file.
-	rows := []SettlementRow{
-		{ProcessorRefID: "ref-1", MerchantID: "merchant-A", Amount: 1000, SettlementDate: "2026-02-10"},
-		{ProcessorRefID: "ref-2", MerchantID: "merchant-A", Amount: 2000, SettlementDate: "2026-02-10"},
-		{ProcessorRefID: "ref-3", MerchantID: "merchant-B", Amount: 3000, SettlementDate: "2026-02-10"},
-	}
-	result, err := l.ProcessSettlementFile("file-1", rows)
+	result, err := l.ProcessSettlementFile(SettlementFile{
+		FileID: "file-1",
+		Date:   "2026-02-10",
+		Rows: []SettlementRow{
+			{ProcessorRefID: "ref-1", MerchantID: "merchant-A", Amount: 1000},
+			{ProcessorRefID: "ref-2", MerchantID: "merchant-A", Amount: 2000},
+			{ProcessorRefID: "ref-3", MerchantID: "merchant-B", Amount: 3000},
+		},
+	})
 	if err != nil {
 		t.Fatalf("ProcessSettlementFile: %v", err)
 	}
@@ -107,12 +110,14 @@ func TestUnknownSettlementRow(t *testing.T) {
 		TransactionID: "txn-1", MerchantID: "m1", Amount: 500, ProcessorRefID: "ref-1",
 	})
 
-	rows := []SettlementRow{
-		{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 500, SettlementDate: "2026-02-10"},
-		{ProcessorRefID: "ref-unknown", MerchantID: "m2", Amount: 999, SettlementDate: "2026-02-10"},
-	}
-
-	result, err := l.ProcessSettlementFile("file-1", rows)
+	result, err := l.ProcessSettlementFile(SettlementFile{
+		FileID: "file-1",
+		Date:   "2026-02-10",
+		Rows: []SettlementRow{
+			{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 500},
+			{ProcessorRefID: "ref-unknown", MerchantID: "m2", Amount: 999},
+		},
+	})
 	if err != nil {
 		t.Fatalf("ProcessSettlementFile: %v", err)
 	}
@@ -143,10 +148,11 @@ func TestDepositMismatch(t *testing.T) {
 		TransactionID: "txn-1", MerchantID: "m1", Amount: 1000, ProcessorRefID: "ref-1",
 	})
 
-	rows := []SettlementRow{
-		{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000, SettlementDate: "2026-02-10"},
-	}
-	_, _ = l.ProcessSettlementFile("file-1", rows)
+	_, _ = l.ProcessSettlementFile(SettlementFile{
+		FileID: "file-1",
+		Date:   "2026-02-10",
+		Rows:   []SettlementRow{{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000}},
+	})
 
 	// Wrong amount.
 	err := l.ReconcileBankDeposit(999, "2026-02-10")
@@ -173,18 +179,20 @@ func TestIdempotentSettlement(t *testing.T) {
 		TransactionID: "txn-1", MerchantID: "m1", Amount: 500, ProcessorRefID: "ref-1",
 	})
 
-	rows := []SettlementRow{
-		{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 500, SettlementDate: "2026-02-10"},
+	file := SettlementFile{
+		FileID: "file-1",
+		Date:   "2026-02-10",
+		Rows:   []SettlementRow{{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 500}},
 	}
 
 	// First processing.
-	result1, _ := l.ProcessSettlementFile("file-1", rows)
+	result1, _ := l.ProcessSettlementFile(file)
 	if result1.Matched != 1 {
 		t.Errorf("first pass matched: got %d, want 1", result1.Matched)
 	}
 
 	// Second processing — should be a no-op.
-	result2, _ := l.ProcessSettlementFile("file-1", rows)
+	result2, _ := l.ProcessSettlementFile(file)
 	if result2.Matched != 0 && result2.AlreadySettled != 0 {
 		t.Errorf("second pass should be no-op: %+v", result2)
 	}
@@ -214,10 +222,11 @@ func TestFailedPayoutRetry(t *testing.T) {
 	_ = l.RecordAuthorization(Transaction{
 		TransactionID: "txn-1", MerchantID: "m1", Amount: 1000, ProcessorRefID: "ref-1",
 	})
-	rows := []SettlementRow{
-		{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000, SettlementDate: "2026-02-10"},
-	}
-	_, _ = l.ProcessSettlementFile("file-1", rows)
+	_, _ = l.ProcessSettlementFile(SettlementFile{
+		FileID: "file-1",
+		Date:   "2026-02-10",
+		Rows:   []SettlementRow{{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000}},
+	})
 	_ = l.ReconcileBankDeposit(1000, "2026-02-10")
 
 	// First batch — should fail.

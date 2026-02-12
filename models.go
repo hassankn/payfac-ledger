@@ -66,6 +66,13 @@ type SettlementRow struct {
 	SettlementDate string // YYYY-MM-DD
 }
 
+// SettlementFile represents a daily settlement file from the card processor.
+type SettlementFile struct {
+	FileID string
+	Date   string // YYYY-MM-DD
+	Rows   []SettlementRow
+}
+
 // SettlementFileResult summarizes what happened when processing a settlement file.
 type SettlementFileResult struct {
 	Matched        int

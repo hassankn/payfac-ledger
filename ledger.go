@@ -177,8 +177,8 @@ func (l *Ledger) ExecutePayoutBatch() []PayoutResult {
 
 // GetMerchantBalance returns the current balance in each state for a merchant.
 // Balances are computed from individual debit/credit entries per account.
-func (l *Ledger) GetMerchantBalance(merchantID string) MerchantBalance {
-	bal := MerchantBalance{MerchantID: merchantID}
+func (l *Ledger) GetMerchantBalance(merchantID string) Balance {
+	bal := Balance{MerchantID: merchantID}
 
 	for _, e := range l.entries {
 		if e.MerchantID != merchantID {
@@ -197,9 +197,10 @@ func (l *Ledger) GetMerchantBalance(merchantID string) MerchantBalance {
 }
 
 // GetSystemBalance returns the aggregate balance across all merchants.
-// In a healthy system, pending/settling/available should trend toward zero.
-func (l *Ledger) GetSystemBalance() MerchantBalance {
-	bal := MerchantBalance{}
+// After a healthy lifecycle, all balances should be zero.
+// Non-zero balances indicate money stuck at that stage.
+func (l *Ledger) GetSystemBalance() Balance {
+	bal := Balance{}
 
 	for _, e := range l.entries {
 		switch e.EntryType {
@@ -213,8 +214,8 @@ func (l *Ledger) GetSystemBalance() MerchantBalance {
 	return bal
 }
 
-// addToAccount adds an amount to the appropriate field in MerchantBalance.
-func addToAccount(bal *MerchantBalance, acct Account, amount int64) {
+// addToAccount adds an amount to the appropriate field in Balance.
+func addToAccount(bal *Balance, acct Account, amount int64) {
 	switch acct {
 	case AccountPending:
 		bal.Pending += amount

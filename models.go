@@ -90,9 +90,9 @@ type SettlementFileResult struct {
 	UnmatchedRows  []SettlementRow
 }
 
-// MerchantBalance shows how much money is in each state for a merchant.
-type MerchantBalance struct {
-	MerchantID string
+// Balance shows how much money is in each account state.
+type Balance struct {
+	MerchantID string // empty for system-wide balance
 	Pending    int64
 	Settling   int64
 	Available  int64

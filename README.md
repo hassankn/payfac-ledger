@@ -48,7 +48,9 @@ After a complete lifecycle, all internal account balances are zero. Non-zero bal
 
 ### Balance Queries
 
-`GetMerchantBalance(merchantID)` computes balances by iterating ledger entries and summing credits minus debits for each account. A non-zero balance in any intermediate state indicates money stuck at that stage.
+`GetSystemBalance()` aggregates all ledger entries to show how much money sits in each account (pending, settling, available, funded). After a healthy lifecycle, all balances net to zero. A non-zero balance signals where money is stuck in the pipeline.
+
+`GetMerchantBalance(merchantID)` returns the same breakdown for a single merchant, used to determine payout amounts and diagnose per-merchant issues.
 
 ## Edge Cases
 

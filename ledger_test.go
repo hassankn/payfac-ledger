@@ -210,6 +210,79 @@ func TestIdempotentSettlement(t *testing.T) {
 	}
 }
 
+// TestDuplicateSettlement verifies that a transaction cannot be settled twice,
+// whether the duplicate appears in the same file or across different files.
+func TestDuplicateSettlement(t *testing.T) {
+	t.Run("same file", func(t *testing.T) {
+		l := NewLedger(nil)
+
+		_ = l.RecordAuthorization(Transaction{
+			TransactionID: "txn-1", MerchantID: "m1", CardNumber: "4242", Amount: 1000, ProcessorRefID: "ref-1",
+		})
+
+		result, err := l.ProcessSettlementFile(SettlementFile{
+			FileID: "file-1",
+			Date:   "2026-02-10",
+			Rows: []SettlementRow{
+				{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000},
+				{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000}, // duplicate
+			},
+		})
+		if err != nil {
+			t.Fatalf("ProcessSettlementFile: %v", err)
+		}
+
+		if result.Matched != 1 {
+			t.Errorf("matched: got %d, want 1", result.Matched)
+		}
+		if result.AlreadySettled != 1 {
+			t.Errorf("already settled: got %d, want 1", result.AlreadySettled)
+		}
+
+		bal := l.GetMerchantBalance("m1")
+		if bal.Settling != 1000 {
+			t.Errorf("m1 settling: got %d, want 1000", bal.Settling)
+		}
+	})
+
+	t.Run("across files", func(t *testing.T) {
+		l := NewLedger(nil)
+
+		_ = l.RecordAuthorization(Transaction{
+			TransactionID: "txn-1", MerchantID: "m1", CardNumber: "4242", Amount: 1000, ProcessorRefID: "ref-1",
+		})
+
+		// First file settles the transaction.
+		_, _ = l.ProcessSettlementFile(SettlementFile{
+			FileID: "file-1",
+			Date:   "2026-02-10",
+			Rows:   []SettlementRow{{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000}},
+		})
+
+		// Second file (different ID) also contains the same ref.
+		result, err := l.ProcessSettlementFile(SettlementFile{
+			FileID: "file-2",
+			Date:   "2026-02-11",
+			Rows:   []SettlementRow{{ProcessorRefID: "ref-1", MerchantID: "m1", Amount: 1000}},
+		})
+		if err != nil {
+			t.Fatalf("ProcessSettlementFile: %v", err)
+		}
+
+		if result.AlreadySettled != 1 {
+			t.Errorf("already settled: got %d, want 1", result.AlreadySettled)
+		}
+		if result.Matched != 0 {
+			t.Errorf("matched: got %d, want 0", result.Matched)
+		}
+
+		bal := l.GetMerchantBalance("m1")
+		if bal.Settling != 1000 {
+			t.Errorf("m1 settling: got %d, want 1000", bal.Settling)
+		}
+	})
+}
+
 // TestFailedPayoutRetry verifies that a failed payout leaves money in Available
 // and a subsequent batch can successfully retry it.
 func TestFailedPayoutRetry(t *testing.T) {

@@ -92,7 +92,10 @@ func (l *Ledger) ProcessSettlementFile(file SettlementFile) (*SettlementFileResu
 
 		txn := l.transactions[txnID]
 
-		// Skip if not in pending state (already moved past this stage).
+		// Skip if not in pending state.
+		// Because we update the status to Settling in this same loop,
+		// a duplicate ProcessorRefID later in the same file (or in a
+		// different file) will be caught here, preventing double-counting.
 		if txn.Status != StatusPending {
 			result.AlreadySettled++
 			continue
